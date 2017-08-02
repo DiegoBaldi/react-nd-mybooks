@@ -1,9 +1,5 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import * as BooksAPI from './BooksAPI'
-import escapeRegExp from 'escape-string-regexp';
-import sortBy from 'sort-by';
 
 class BookDetails extends Component {
 
@@ -12,7 +8,6 @@ class BookDetails extends Component {
     }
 
     componentDidMount() {
-        console.log(this.props)
         BooksAPI.get(this.props.match.params.bookId).then((book) => {
             this.setState({
                 book: book
@@ -32,7 +27,7 @@ class BookDetails extends Component {
                     </div>
                 </div>
                 <div id="container" className="book-cover">
-                    <img id="left" src={ book.imageLinks.thumbnail} className="book-cover" />
+                    <img id="left" src={ book.imageLinks.thumbnail} className="book-cover" alt={book.title}/>
                     <div id="right">
                         <p><strong>Author : </strong>{ book.authors.join(", ")}</p>
                         {(book.publishedDate) ? <p><strong>Published : </strong>{ book.publishedDate}</p> : ''}
