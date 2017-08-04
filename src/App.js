@@ -12,13 +12,15 @@ class BooksApp extends React.Component {
   state = {
     searchedBooks: [],
     books: [],
-    query: ''
+    query: '',
+    booksIds : []
   }
 
   componentDidMount() {
     BooksAPI.getAll().then((books) => {
       this.setState({
-        books: books
+        books: books,
+        booksIds: books.map((b) => b.id)
       })
     })
   }
@@ -30,38 +32,45 @@ class BooksApp extends React.Component {
   }
 
   searchBooks = (query, maxResults) => {
-    BooksAPI.search(query, 100).then((books) => {
-      if (Array.isArray(books)) {
-        this.setState({
-          searchedBooks: books
-        })
-      } else {
-        this.clearSearchedBooks()
-      }
-    })
+    if (query.length > 1) {
+      BooksAPI.search(query, 100).then((books) => {
+        if (Array.isArray(books)) {
+          this.setState({
+            searchedBooks: books
+          })
+        } else {
+          this.clearSearchedBooks()
+        }
+      })
+    } else {
+      this.clearSearchedBooks();
+    }
+
   }
 
   moveBook = (book, where) => {
     this.setState((state) => ({
-    books: state.books.map((b) => {
-      if(b.id === book.id){
-        b.shelf = where
-      }
-      return b
-    })
+      books: state.books.map((b) => {
+        if (b.id === book.id) {
+          b.shelf = where
+        }
+        return b
+      }),
+      booksIds : state.booksIds.filter((b) => ( b !==book.id && where==='none'))
     }))
     BooksAPI.update(book, where)
   }
 
   addBook = (book, where) => {
     this.setState((state) => ({
-    searchedBooks: state.searchedBooks.map((b) => {
-      if(b.id === book.id){
-        b.shelf = where
-      }
-      return b
-    }),
-    books: state.books.concat(state.searchedBooks.filter((b) => b.id === book.id))
+      searchedBooks: state.searchedBooks.map((b) => {
+        if (b.id === book.id) {
+          b.shelf = where
+        }
+        return b
+      }),
+      books: state.books.concat(state.searchedBooks.filter((b) => b.id === book.id)),
+      booksIds: state.booksIds.concat([book.id])
     }))
     BooksAPI.update(book, where)
   }
@@ -89,7 +98,7 @@ class BooksApp extends React.Component {
             </div>
             <div className="search-books-results">
               <ol className="books-grid">
-                {this.state.searchedBooks.filter((b) => b.shelf === 'none').map((book) =>
+                {this.state.searchedBooks.filter((b) => (!(this.state.booksIds.includes(b.id)) && b.shelf==='none')).map((book) =>
                   <li key={book.id}>
                     <Book book={book} onBookMoved={this.addBook} />
                   </li>
