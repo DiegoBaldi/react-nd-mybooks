@@ -12,15 +12,13 @@ class BooksApp extends React.Component {
   state = {
     searchedBooks: [],
     books: [],
-    query: '',
-    booksIds : []
+    query: ''
   }
 
   componentDidMount() {
     BooksAPI.getAll().then((books) => {
       this.setState({
-        books: books,
-        booksIds: books.map((b) => b.id)
+        books: books
       })
     })
   }
@@ -36,7 +34,7 @@ class BooksApp extends React.Component {
       BooksAPI.search(query, 100).then((books) => {
         if (Array.isArray(books)) {
           this.setState({
-            searchedBooks: books
+            searchedBooks: this.filterArray(this.removeDuplicates(books), this.state.books)
           })
         } else {
           this.clearSearchedBooks()
@@ -48,6 +46,28 @@ class BooksApp extends React.Component {
 
   }
 
+  //Remove duplicates from backend response
+  removeDuplicates = (array) => {
+    return array.filter((book, index, self) => self.findIndex(b => b.id === book.id ) === index)
+  }
+
+  //In order to homogenize the two arrays
+  filterArray = (array, filters) => {
+    for (var arr in array) {
+      var found = false
+      for (var filter in filters) {
+        if (array[arr].id === filters[filter].id) {
+          array[arr].shelf = filters[filter].shelf
+          found = true
+        } 
+      }
+      if(!found){
+        array[arr].shelf = "none"
+      }
+    }
+    return array
+  }
+
   moveBook = (book, where) => {
     this.setState((state) => ({
       books: state.books.map((b) => {
@@ -56,29 +76,20 @@ class BooksApp extends React.Component {
         }
         return b
       }),
-      booksIds : state.booksIds.filter((b) => ( b !==book.id && where==='none'))
-    }))
-    BooksAPI.update(book, where)
-  }
-
-  addBook = (book, where) => {
-    this.setState((state) => ({
       searchedBooks: state.searchedBooks.map((b) => {
         if (b.id === book.id) {
           b.shelf = where
         }
         return b
-      }),
-      books: state.books.concat(state.searchedBooks.filter((b) => b.id === book.id)),
-      booksIds: state.booksIds.concat([book.id])
+      })
     }))
-    BooksAPI.update(book, where)
   }
+
 
   render() {
     return (
       <div className="app">
-        <Route path='/search' render={() => (
+        <Route path='/search' render={({ history }) => (
           <div className="search-books">
             <div className="search-books-bar">
               <Link className="close-search" to="/">Close</Link>
@@ -98,9 +109,19 @@ class BooksApp extends React.Component {
             </div>
             <div className="search-books-results">
               <ol className="books-grid">
-                {this.state.searchedBooks.filter((b) => (!(this.state.booksIds.includes(b.id)) && b.shelf==='none')).map((book) =>
+                {this.state.searchedBooks.map((book) =>
                   <li key={book.id}>
-                    <Book book={book} onBookMoved={this.addBook} />
+                    <Book book={book} onBookMoved={ (book, where) => {
+                      this.moveBook(book, where)                      
+                      BooksAPI.update(book, where).then((result) => {
+                        BooksAPI.getAll().then((books) => {
+                          this.setState({
+                            books: books
+                          })
+                          history.push('/')                          
+                        })
+                      })
+                    }} />
                   </li>
                 )}
               </ol>
